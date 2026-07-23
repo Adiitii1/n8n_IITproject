@@ -1,0 +1,285 @@
+{
+  "name": "Workflow 1 - Student Registration & Enrollment",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1nl_jBtorfVaThNrNPYJ0DDokne0Sgr9JXK4Y9di3bpM",
+          "mode": "list",
+          "cachedResultName": "Student Registration (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nl_jBtorfVaThNrNPYJ0DDokne0Sgr9JXK4Y9di3bpM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1571878878,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nl_jBtorfVaThNrNPYJ0DDokne0Sgr9JXK4Y9di3bpM/edit#gid=1571878878"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "name": "1. Google Form Submitted (Sheet Trigger)",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "62e95768-bd18-466b-8ce1-0b4ecb43525b",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "neUkC31XwZxXrDxD",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate a unique Student ID and normalize the incoming form fields\nconst items = $input.all();\n\nreturn items.map(item => {\n  const data = item.json;\n\n  const studentId = \"STU-\" + Math.floor(1000 + Math.random() * 9000);\n\n  return {\n    json: {\n      student_id: studentId,\n      name: data.Student_Name || data.Name || '',\n      email: data.Email || data.Email_Address || '',\n      program: data.Program || '',\n      enrollment_year: data.Enrollment_Year || new Date().getFullYear(),\n      status: 'Active',\n      registered_at: new Date().toISOString()\n    }\n  };\n});"
+      },
+      "name": "2. Generate Student ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "62e23922-88b7-4242-92cf-cb2d10050a33"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI",
+          "mode": "list",
+          "cachedResultName": "University Master Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Students",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Student ID": "={{ $json.student_id }}",
+            "Name": "={{ $json.name }}",
+            "Email": "={{ $json.email }}",
+            "Program": "={{ $json.program }}",
+            "Enrollment Year": "={{ $json.enrollment_year }}",
+            "Status": "={{ $json.status }}",
+            "Registered At": "={{ $json.registered_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Student ID",
+              "displayName": "Student ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Program",
+              "displayName": "Program",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Enrollment Year",
+              "displayName": "Enrollment Year",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Registered At",
+              "displayName": "Registered At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "name": "3. Append Student Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "10b7bc80-7583-40de-a253-52de8c760c2b",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "pZZrWeITbsXJXdsg",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "Welcome to the University - Your Student ID",
+        "message": "=Dear {{ $json.Name }},<br><br>Welcome to the university! Your registration for the <b>{{ $json.Program }}</b> program has been successfully processed.<br><br><b>Your Student ID:</b>{{ $json['Student ID'] }} <br><br>Please use this Student ID to log in to the student portal and access your courses, attendance, and grades.<br><br>Best regards,<br>University Administration",
+        "options": {}
+      },
+      "name": "4. Send Welcome Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "77145d2a-2907-4250-a854-d1da7bdb6911",
+      "webhookId": "4c6ae5f8-5df5-4fc5-a443-64b916efebd0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eqifNabZREMAA7jN",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "XTNC4oTnIR7XN04D",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/XTNC4oTnIR7XN04D",
+          "cachedResultName": "Workflow 4 - Grade Aggregation & Centralized Audit Logger"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "name": "5. Trigger Audit Log",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "bede10af-f554-4487-9c00-7e73c3a5a557"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1. Google Form Submitted (Sheet Trigger)": {
+      "main": [
+        [
+          {
+            "node": "2. Generate Student ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Generate Student ID": {
+      "main": [
+        [
+          {
+            "node": "3. Append Student Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Append Student Row": {
+      "main": [
+        [
+          {
+            "node": "4. Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "5. Trigger Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e016fe61-a282-4673-ae9a-54a807c60c09",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "91d187a3f98161240ec478755ce1312ac609b6f00f5bba030b1c28ef2bf09286"
+  },
+  "nodeGroups": [],
+  "id": "VyOFwxFC3BZ0vw6j",
+  "tags": []
+}

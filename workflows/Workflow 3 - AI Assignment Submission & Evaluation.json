@@ -1,0 +1,365 @@
+{
+  "name": "Workflow 3 - AI Assignment Submission & Evaluation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "assignment-submission",
+        "options": {}
+      },
+      "name": "1. Assignment Uploaded (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        176,
+        80
+      ],
+      "id": "24d544a9-f104-41f1-b91d-3f06bb06b127",
+      "webhookId": "assignment-submission-hook"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1jSSjvuBRguoyMc-M5veEPotdSw4tx0WSqNVhvJVGR4c",
+          "mode": "list",
+          "cachedResultName": "n8n_wkflw3final",
+          "cachedResultUrl": "https://docs.google.com/document/d/1jSSjvuBRguoyMc-M5veEPotdSw4tx0WSqNVhvJVGR4c/edit?usp=drivesdk"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain",
+              "slidesToFormat": "application/pdf"
+            }
+          }
+        }
+      },
+      "name": "2. Download Assignment File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        400,
+        80
+      ],
+      "id": "a236d139-8474-457d-ad15-1e7ce0553b0a",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "xlGo1qEaVOmrDIWD",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "name": "2b. Extract Text From File",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        624,
+        80
+      ],
+      "id": "6b3262c0-de22-4359-94b8-ca27a3b609f7"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.candidates?.[0]?.content?.parts?.[0]?.text || '';\nconst cleaned = raw.replace(/```json|```/g, '').trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = { grade: 0, feedback: '[PARSE ERROR - check Gemini prompt] AI did not return valid JSON. Raw output: ' + raw.substring(0, 300) };\n}\n\nconst grade = Number(parsed.grade) || 0;\nconst feedback = parsed.feedback || '';\n\nreturn [{\n  json: {\n    grade: grade,\n    feedback: feedback,\n    needs_review: grade < 50\n  }\n}];"
+      },
+      "name": "4. Parse AI Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        80
+      ],
+      "id": "2b9d889e-3dc8-4e2b-a9c5-a28a7b52fd28"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{$json.needs_review}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "5. Grade Below 50? (Human Review Gate)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        80
+      ],
+      "id": "7434c438-216b-4642-a509-dd03f28b639b"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI",
+          "mode": "list",
+          "cachedResultName": "University Master Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 485158716,
+          "mode": "list",
+          "cachedResultName": "grades",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI/edit#gid=485158716"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Student_ID": "={{ $json.student_id }}",
+            "Assignment_ID": "={{ $json.assignment_id }}",
+            "Grade": "={{ $json.grade }}",
+            "Feedback": "={{ $json.feedback }}",
+            "Status": "={{ $('4. Parse AI Output').item.json.needs_review }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Student_ID",
+              "displayName": "Student_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Assignment_ID",
+              "displayName": "Assignment_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Grade",
+              "displayName": "Grade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Feedback",
+              "displayName": "Feedback",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "name": "6. Save Grade to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1520,
+        80
+      ],
+      "id": "1e685ac6-81ca-49b7-93f1-3e3cafbe5966",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "pZZrWeITbsXJXdsg",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('1. Assignment Uploaded (Webhook)').item.json.body.student_email }}",
+        "subject": "=Your Assignment{{ $('1. Assignment Uploaded (Webhook)').item.json.body.assignment_id }} ",
+        "message": "=Dear Student {{ $('1. Assignment Uploaded (Webhook)').item.json.body.student_id }},<br><br>{{ $json.needs_review ? \"Your assignment has been received and is currently <b>under manual review</b> by a faculty member due to its preliminary AI score. You will receive your final grade shortly.\" : \"Your assignment has been auto-graded.<br><br><b>Grade:</b> \" + $json.grade + \"/100<br><b>Feedback:</b><br>\" + $json.feedback }}<br><br>Regards,<br>University Academic Office",
+        "options": {}
+      },
+      "name": "7. Publish Grade to Student",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1744,
+        80
+      ],
+      "id": "fc5ce392-f75f-42c7-adf0-938035b2b0c9",
+      "webhookId": "d4fa2231-cb3c-4e86-9079-a4f27d02235c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eqifNabZREMAA7jN",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  contents: [\n    {\n      parts: [\n        {\n          text: \"You are grading a student's assignment submission. Evaluate it on a scale of 0 to 100 based on accuracy, completeness, and clarity. Respond with ONLY raw JSON in this exact format, no markdown, no code fences, no extra commentary: {\\\"grade\\\": <number 0-100>, \\\"feedback\\\": \\\"<2-3 sentences of constructive feedback>\\\"}\\n\\nStudent submission:\\n\" + $json.data\n        }\n      ]\n    }\n  ],\n  generationConfig: {\n    responseMimeType: \"application/json\"\n  }\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        96
+      ],
+      "id": "7ec5a324-4369-451a-b223-b0c79ed87613",
+      "name": "3. AI Auto-Grading & Feedback",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "8q6lBRF674Z6EY15",
+          "name": "Header Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1. Assignment Uploaded (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "2. Download Assignment File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Download Assignment File": {
+      "main": [
+        [
+          {
+            "node": "2b. Extract Text From File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Parse AI Output": {
+      "main": [
+        [
+          {
+            "node": "5. Grade Below 50? (Human Review Gate)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Grade Below 50? (Human Review Gate)": {
+      "main": [
+        [
+          {
+            "node": "6. Save Grade to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "6. Save Grade to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Save Grade to Sheet": {
+      "main": [
+        [
+          {
+            "node": "7. Publish Grade to Student",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2b. Extract Text From File": {
+      "main": [
+        [
+          {
+            "node": "3. AI Auto-Grading & Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. AI Auto-Grading & Feedback": {
+      "main": [
+        [
+          {
+            "node": "4. Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a6e60e11-7c8d-4e83-8a7d-c231555978df",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "91d187a3f98161240ec478755ce1312ac609b6f00f5bba030b1c28ef2bf09286"
+  },
+  "nodeGroups": [],
+  "id": "8KWmUcjTvOPv46Rp",
+  "tags": []
+}

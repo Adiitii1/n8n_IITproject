@@ -1,0 +1,192 @@
+{
+  "name": "Workflow 2 - Attendance Tracking & Low-Attendance Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                5
+              ],
+              "triggerAtHour": 17
+            }
+          ]
+        }
+      },
+      "name": "1. Every Friday 5PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -880,
+        80
+      ],
+      "id": "547ef4b2-a80e-4998-a497-5c44b16ffc6c"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI",
+          "mode": "list",
+          "cachedResultName": "University Master Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1927102733,
+          "mode": "list",
+          "cachedResultName": "Attendance",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI/edit#gid=1927102733"
+        },
+        "options": {}
+      },
+      "name": "2. Read Attendance Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        -656,
+        80
+      ],
+      "id": "a4dbe0f4-2e1b-41ae-9dd5-198509cf24b8",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "pZZrWeITbsXJXdsg",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate attendance % for every row and flag low attendance\nconst items = $input.all();\n\nreturn items.map(item => {\n  const data = item.json;\n\n  const total = Number(data.Total_Classes) || 0;\n  const attended = Number(data.Attended_Classes) || 0;\n  const pct = total > 0 ? (attended / total) * 100 : 0;\n\n  return {\n    json: {\n      ...data,\n      attendance_pct: Math.round(pct * 100) / 100,\n      isLow: pct < 75\n    }\n  };\n});"
+      },
+      "name": "3. Calculate Attendance %",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        80
+      ],
+      "id": "dca65ffc-2548-492e-9647-29870f4c760c"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{$json.isLow}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "4. Is Attendance Low?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        80
+      ],
+      "id": "58733053-1ef0-4304-b1a7-d19aab2fa0e0"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.Email}}",
+        "subject": "=Attendance Warning - {{$json.attendance_pct}}% Attendance",
+        "message": "=Dear {{$json.Name || $json.Student_ID}},<br><br>This is an automated notice to inform you that your current attendance stands at <b>{{$json.attendance_pct}}%</b>, which is below the required minimum of 75%.<br><br><b>Total Classes:</b> {{$json.Total_Classes}}<br><b>Classes Attended:</b> {{$json.Attended_Classes}}<br><br>Please improve your attendance to avoid academic penalties. Your academic counselor has been copied on this email and may reach out to discuss support options.<br><br>Regards,<br>University Administration",
+        "options": {}
+      },
+      "name": "5. Send Low Attendance Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "07ed4b05-cb76-488d-b785-179f6808d022",
+      "webhookId": "2d1ce5e6-74ef-462e-a65b-882af098695c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eqifNabZREMAA7jN",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1. Every Friday 5PM": {
+      "main": [
+        [
+          {
+            "node": "2. Read Attendance Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Read Attendance Sheet": {
+      "main": [
+        [
+          {
+            "node": "3. Calculate Attendance %",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Calculate Attendance %": {
+      "main": [
+        [
+          {
+            "node": "4. Is Attendance Low?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Is Attendance Low?": {
+      "main": [
+        [
+          {
+            "node": "5. Send Low Attendance Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "27252380-437e-411e-a6e8-1ae2db692a89",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "91d187a3f98161240ec478755ce1312ac609b6f00f5bba030b1c28ef2bf09286"
+  },
+  "nodeGroups": [],
+  "id": "Vc4Lecaq6IiYpODW",
+  "tags": []
+}

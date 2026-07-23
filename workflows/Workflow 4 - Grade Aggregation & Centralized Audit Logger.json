@@ -1,0 +1,346 @@
+{
+  "name": "Workflow 4 - Grade Aggregation & Centralized Audit Logger",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2e22ba4c-259f-4dad-997d-5a274856faf4",
+      "name": "Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        16,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Log Entry: build a clean, sanitized log record\nconst input = $input.item.json;\n\nfunction sanitize(value) {\n  if (typeof value !== 'string') return value;\n  // Strip characters that could trigger formula injection in Google Sheets\n  return value.replace(/^[=+\\-@]/, \"'$&\").substring(0, 500);\n}\n\nconst eventType = sanitize(input.event_type || 'INFO');\nconst userId = sanitize(input.user_id || 'unknown');\nconst details = sanitize(JSON.stringify(input.details || {}));\nconst sourceWorkflow = sanitize(input.source_workflow || 'unspecified');\n\nconst allowedSeverities = ['INFO', 'WARNING', 'CRITICAL_ERROR'];\nconst severity = allowedSeverities.includes((input.severity || '').toUpperCase())\n  ? input.severity.toUpperCase()\n  : 'INFO';\n\nreturn {\n  json: {\n    timestamp: new Date().toISOString(),\n    event_type: eventType,\n    severity: severity,\n    user_id: userId,\n    source_workflow: sourceWorkflow,\n    details: details\n  }\n};"
+      },
+      "id": "9058a4f8-d1aa-444e-b9c7-e70495b0cf14",
+      "name": "Format Log Entry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI",
+          "mode": "list",
+          "cachedResultName": "University Master Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Audit_Logs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Event_Type": "={{ $json.event_type }}",
+            "Severity": "={{ $json.severity }}",
+            "User_ID": "={{ $json.user_id }}",
+            "Source_Workflow": "={{ $json.source_workflow }}",
+            "Details": "={{ $json.details }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Event_Type",
+              "displayName": "Event_Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Severity",
+              "displayName": "Severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "User_ID",
+              "displayName": "User_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source_Workflow",
+              "displayName": "Source_Workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Details",
+              "displayName": "Details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c775a4a2-2f13-43bb-af23-85d1ff03728b",
+      "name": "Append to Audit Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        464,
+        80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "pZZrWeITbsXJXdsg",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.Severity }}",
+                    "rightValue": "INFO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b150afba-e9cd-451c-8c8c-8a100a168e74"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "INFO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.Severity }}",
+                    "rightValue": "WARNING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "655f3be4-02ea-4f07-85b9-3eeefb6caaf9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WARNING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Edit Fields').item.json.severity }}",
+                    "rightValue": "CRITICAL_ERROR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "93190d58-eb95-4d8e-9461-b898bc16fc96"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CRITICAL_ERROR"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "id": "97349e9d-46b9-4f01-914b-2ecfea969401",
+      "name": "Severity Filter",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        688,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "aditineve007@gmail.com",
+        "subject": "=CRITICAL ALERT:{{ $('Append to Audit Log').item.json.Event_Type }}  in {{ $('Append to Audit Log').item.json.Source_Workflow }}",
+        "message": "=A CRITICAL_ERROR event was logged in the Smart University Platform.\n\nTimestamp: {{ $json.timestamp }}\nSource Workflow: {{ $json.source_workflow }}\nEvent Type: {{ $json.event_type }}\nUser ID: {{ $json.user_id }}\nDetails: {{ $json.details }}\n\nPlease investigate immediately.",
+        "options": {}
+      },
+      "id": "99d18078-d844-4cc3-a663-6be994cf8695",
+      "name": "Escalation Alert (Gmail)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1024,
+        80
+      ],
+      "webhookId": "d8a733d3-78d0-4ee9-8e94-c168f3fa46bf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eqifNabZREMAA7jN",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"event_type\": \"Grade Submitted\",\n  \"user_id\": \"STU1029\",\n  \"severity\": \"CRITICAL_ERROR\",\n  \"source_workflow\": \"Grade Processing\",\n  \"details\": {\n    \"reason\": \"Score is low\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        80
+      ],
+      "id": "b969ce2a-acd0-4cda-ac9d-2acdf37a25ef",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Log Entry": {
+      "main": [
+        [
+          {
+            "node": "Append to Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Severity Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Severity Filter": {
+      "main": [
+        [
+          {
+            "node": "Escalation Alert (Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalation Alert (Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalation Alert (Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Format Log Entry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "94186f3b-1adb-444e-90a3-c55a455e2479",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "91d187a3f98161240ec478755ce1312ac609b6f00f5bba030b1c28ef2bf09286"
+  },
+  "nodeGroups": [],
+  "id": "XTNC4oTnIR7XN04D",
+  "tags": []
+}

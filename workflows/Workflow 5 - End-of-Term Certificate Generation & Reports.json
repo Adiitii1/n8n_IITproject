@@ -1,0 +1,294 @@
+{
+  "name": "Workflow 5 - End-of-Term Certificate Generation & Reports",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "term-completion",
+        "options": {}
+      },
+      "name": "1. Term Completion Triggered (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        80
+      ],
+      "id": "653af00b-6f8c-4f2e-83d1-1b6fca40f127",
+      "webhookId": "term-completion-hook"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI",
+          "mode": "list",
+          "cachedResultName": "University Master Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Students",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vNh51fiuxJshvwpgsSe8tdTcd3v6WclJW-PBv4SuCXI/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Program",
+              "lookupValue": "={{$json.body.program_code}}"
+            },
+            {
+              "lookupColumn": "Graduation_Year",
+              "lookupValue": "={{$json.body.graduation_year}}"
+            },
+            {
+              "lookupColumn": "Eligible",
+              "lookupValue": "TRUE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "2. Fetch Eligible Students",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        -448,
+        80
+      ],
+      "id": "59fd14c5-a6de-40dc-9fce-b7584356a541",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "pZZrWeITbsXJXdsg",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "3. Loop Over Eligible Students",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -224,
+        0
+      ],
+      "id": "a274516a-3c9c-432a-b987-52381103d71b",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "name": "=={{$json.certificate_filename}}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1bbj7-Olw6-1fsiPptIryiaGaszW9fmZu",
+          "mode": "list",
+          "cachedResultName": "Certificates",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1bbj7-Olw6-1fsiPptIryiaGaszW9fmZu"
+        },
+        "options": {}
+      },
+      "name": "5. Store Certificate in Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        400,
+        -144
+      ],
+      "id": "6c0b67f2-dda4-4cf1-a94a-b98d93257746",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "xlGo1qEaVOmrDIWD",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('2. Fetch Eligible Students').item.json.Email }}",
+        "subject": "=Your Official Certificate of Completion - {{ $('2. Fetch Eligible Students').item.json.Program }}",
+        "message": "=Dear {{ $('2. Fetch Eligible Students').item.json.Name }}\\,<br><br>Congratulations on successfully completing the <b>{{ $('2. Fetch Eligible Students').item.json.Program }}</b> program!<br><br>Please find your official Certificate of Completion attached to this email. A copy has also been securely stored in the university's records.<br><br>We wish you the very best in your future endeavors.<br><br>Regards,<br>University Administration",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "name": "6. Email Certificate to Student",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        656,
+        0
+      ],
+      "id": "c4fae42e-f0a5-4c76-8600-bcc7a264f7e0",
+      "webhookId": "81a2c59d-285d-4af4-96be-530ad0c92c86",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eqifNabZREMAA7jN",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const student = $json;\nconst completionDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });\nconst name = student.Name || student.Student_Name || 'Student';\nconst program = student.Program || '';\nconst studentId = student.Student_ID || student['Student ID'] || '';\nconst fileName = `Certificate_${studentId}.pdf`;\n\nconst html = `\n<html>\n<body style=\"font-family: Georgia, serif; text-align:center; padding:60px; border:10px solid #1a1a66;\">\n  <h1 style=\"color:#1a1a66;\">Certificate of Completion</h1>\n  <p style=\"font-size:16px;\">This certifies that</p>\n  <h2>${name}</h2>\n  <p style=\"font-size:14px;\">has successfully completed the <b>${program}</b> program</p>\n  <p style=\"font-size:12px;\">Completion Date: ${completionDate}</p>\n  <p style=\"font-size:10px; color:#666;\">Student ID: ${studentId}</p>\n</body>\n</html>`;\n\nreturn [{\n  json: {\n    ...student,\n    certificate_html: html,\n    certificate_filename: fileName\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        32
+      ],
+      "id": "80de2884-b068-476d-8207-758c52351dbf",
+      "name": "4. Build Certificate HTML"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdfshift.io/v3/convert/pdf",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "source",
+              "value": "={{ $json.certificate_html }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        32
+      ],
+      "id": "cefe5aeb-faf5-446e-b9a4-c4473d5eaf56",
+      "name": "4b. Convert HTML to PDF",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "cnL6eu3H0VwSQGUX",
+          "name": "Unnamed credential"
+        },
+        "httpHeaderAuth": {
+          "id": "7aBv9kidNXD4SZoa",
+          "name": "Header Auth account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1. Term Completion Triggered (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "2. Fetch Eligible Students",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Fetch Eligible Students": {
+      "main": [
+        [
+          {
+            "node": "3. Loop Over Eligible Students",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Loop Over Eligible Students": {
+      "main": [
+        [],
+        [
+          {
+            "node": "4. Build Certificate HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Store Certificate in Drive": {
+      "main": [
+        []
+      ]
+    },
+    "6. Email Certificate to Student": {
+      "main": [
+        [
+          {
+            "node": "3. Loop Over Eligible Students",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Build Certificate HTML": {
+      "main": [
+        [
+          {
+            "node": "4b. Convert HTML to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4b. Convert HTML to PDF": {
+      "main": [
+        [
+          {
+            "node": "5. Store Certificate in Drive",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "6. Email Certificate to Student",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "32a1c3f8-f114-4af3-8e72-92977eacfff4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "91d187a3f98161240ec478755ce1312ac609b6f00f5bba030b1c28ef2bf09286"
+  },
+  "nodeGroups": [],
+  "id": "qajEHWFewt3JhFpV",
+  "tags": []
+}
