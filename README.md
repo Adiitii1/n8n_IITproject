@@ -110,7 +110,7 @@ Create one spreadsheet ("University Master Database") with these tabs:
 
 ## 📄 Documentation
 
-Full project documentation — covering business context, stakeholders, architecture, and a detailed breakdown of every workflow and node — is available in [`docs/Smart_University_Platform_Workflow_Documentation.pdf`](./docs/Smart_University_Platform_Workflow_Documentation.pdf).
+Full project documentation — covering business context, stakeholders, architecture, and a detailed breakdown of every workflow and node — is available in docs/Smart-University-Management-Platform.pdf).
 
 ## 📸 Screenshots
 
